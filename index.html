@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ยืนยันตัวตน</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --light-blue: #e7f1ff;
+            --white: #ffffff;
+            --text-dark: #333333;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--light-blue);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--white);
+            width: 90%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: var(--primary-blue);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        input[type="text"], 
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary-blue);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 2px dashed #cbd5e0;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .file-upload-label:hover {
+            background: #f1f5f9;
+            border-color: var(--primary-blue);
+        }
+
+        #preview {
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.3s;
+        }
+
+        button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ยืนยันตัวตน</h2>
+    
+    <div class="form-group">
+        <label>ชื่อ-นามสกุล</label>
+        <input type="text" id="fullName" placeholder="นาย สมชาย ใจดี">
+    </div>
+
+    <div class="form-group">
+        <label>เลขบัตรประชาชน (13 หลัก)</label>
+        <input type="number" id="idCard" placeholder="x-xxxx-xxxxx-xx-x" oninput="if(value.length>13)value=value.slice(0,13)">
+    </div>
+
+    <div class="form-group">
+        <label>อัพโหลดภาพถ่ายคู่กับบัตรประชาชน</label>
+        <label for="userImage" class="file-upload-label" id="fileLabel">
+            📸 กดเพื่อถ่ายภาพหรือเลือกรูป
+        </label>
+        <input type="file" id="userImage" accept="image/*" onchange="previewImage(this)">
+        <img id="preview" src="" alt="Preview">
+        <p class="hint">* กรุณาให้เห็นใบหน้าชัดเจนพร้อมถือบัตรประชาชน</p>
+    </div>
+
+    <button onclick="submitData()" id="btnSubmit">ยืนยันและส่งข้อมูล</button>
+</div>
+
+<script>
+    // 1. เริ่มต้นระบบ LIFF
+    async function main() {
+        try {
+            await liff.init({ liffId: "ใส่-LIFF-ID-ของคุณตรงนี้" });
+            if (!liff.isLoggedIn()) {
+                liff.login();
+            }
+        } catch (err) {
+            console.error("LIFF Initialization failed", err);
+        }
+    }
+    main();
+
+    // แสดงตัวอย่างรูปภาพ
+    function previewImage(input) {
+        const preview = document.getElementById('preview');
+        const fileLabel = document.getElementById('fileLabel');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                fileLabel.innerText = "เปลี่ยนรูปภาพ";
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+    });
+
+    // 2. ส่งข้อมูล
+    async function submitData() {
+        const btn = document.getElementById('btnSubmit');
+        const fullName = document.getElementById('fullName').value;
+        const idCard = document.getElementById('idCard').value;
+        const fileInput = document.getElementById('userImage');
+        const webhookUrl = "ใส่-URL-Webhook-ของ-Make-ตรงนี้";
+
+        if (!fullName || idCard.length < 13 || fileInput.files.length === 0) {
+            alert("กรุณากรอกข้อมูลให้ครบและถูกต้อง (เลขบัตร 13 หลัก)");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "กำลังประมวลผล...";
+
+        try {
+            const base64Image = await toBase64(fileInput.files[0]);
+
+            const payload = {
+                fullName: fullName,
+                idCard: idCard,
+                image: base64Image,
+                timestamp: new Date().toLocaleString('th-TH')
+            };
+
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("ส่งข้อมูลเรียบร้อยแล้ว");
+                liff.closeWindow();
+            } else {
+                alert("เซิร์ฟเวอร์ตอบกลับผิดพลาด");
+            }
+        } catch (error) {
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "ยืนยันและส่งข้อมูล";
+        }
+    }
+</script>
+
+</body>
+</html>
